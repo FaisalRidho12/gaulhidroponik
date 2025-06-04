@@ -11,9 +11,10 @@ class _EditAkunPageState extends State<EditAkunPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final List<String> avatarAssets = [
-    'assets/profiles/andika1.jpg',
-    'assets/profiles/andika2.jpg',
-    'assets/profiles/andika3.jpg',
+    'assets/profiles/1.png',
+    'assets/profiles/2.png',
+    'assets/profiles/3.png',
+    'assets/profiles/4.png',
   ];
 
   String? selectedAvatarAsset;
