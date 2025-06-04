@@ -125,6 +125,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: usernameController,
+                  cursorColor: Color(0xFF728C5A),
                   decoration: InputDecoration(
                     labelText: 'Username Baru',
                     labelStyle: GoogleFonts.poppins(color: Colors.white70),
@@ -213,6 +214,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
                 TextField(
                   controller: oldPasswordController,
                   obscureText: true,
+                  cursorColor: Color(0xFF728C5A),
                   decoration: InputDecoration(
                     labelText: 'Password Lama',
                     labelStyle: GoogleFonts.poppins(color: Colors.white70),
@@ -229,6 +231,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
                 TextField(
                   controller: newPasswordController,
                   obscureText: true,
+                  cursorColor: Color(0xFF728C5A),
                   decoration: InputDecoration(
                     labelText: 'Password Baru',
                     labelStyle: GoogleFonts.poppins(color: Colors.white70),
