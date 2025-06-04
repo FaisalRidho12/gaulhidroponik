@@ -27,111 +27,181 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  void _logout(BuildContext context) async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Konfirmasi Logout'),
-        content: Text('Apakah Anda yakin ingin logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Batal'),
+void _logout(BuildContext context) async {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF728C5A).withOpacity(0.8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFEAF1B1)),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Logout', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldLogout == true) {
-      await _auth.signOut();
-      Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => WelcomePage(onLoginSuccess: () {
-            Navigator.of(navigatorKey.currentContext!).pushReplacement(
-              MaterialPageRoute(builder: (context) => SettingsPage()),
-            );
-          }),
-        ),
-            (route) => false,
-      );
-    }
-  }
-
-  void _deleteAccount(BuildContext context) {
-    final passwordController = TextEditingController();
-    final user = _auth.currentUser;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Hapus Akun'),
-          content: Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Masukkan password untuk konfirmasi.'),
-              SizedBox(height: 8),
+              Text(
+                'Konfirmasi Logout',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Apakah Anda yakin ingin keluar?',
+                style: GoogleFonts.poppins(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Batal', style: GoogleFonts.poppins(color: Colors.white)),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _auth.signOut();
+                      Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => WelcomePage(onLoginSuccess: () {
+                            Navigator.of(navigatorKey.currentContext!).pushReplacement(
+                              MaterialPageRoute(builder: (context) => SettingsPage()),
+                            );
+                          }),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    child: Text('Logout', style: GoogleFonts.poppins(color: const Color.fromARGB(255, 158, 8, 8))),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
+void _deleteAccount(BuildContext context) {
+  final passwordController = TextEditingController();
+  final user = _auth.currentUser;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF728C5A).withOpacity(0.8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFEAF1B1)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hapus Akun',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Masukkan password untuk konfirmasi.',
+                style: GoogleFonts.poppins(color: Colors.white70),
+              ),
+              const SizedBox(height: 12),
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: InputDecoration(labelText: 'Password'),
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  labelStyle: GoogleFonts.poppins(color: Colors.white70),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white, width: 2.0),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFFEAF1B1), width: 2.0),
+                  ),
+                ),
+                style: GoogleFonts.poppins(color: Colors.white),
               ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Batal', style: GoogleFonts.poppins(color: Colors.white)),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final password = passwordController.text.trim();
+
+                      if (password.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Password harus diisi')),
+                        );
+                        return;
+                      }
+
+                      try {
+                        final cred = EmailAuthProvider.credential(
+                          email: user!.email!,
+                          password: password,
+                        );
+                        await user.reauthenticateWithCredential(cred);
+                        await user.delete();
+
+                        Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => WelcomePage(onLoginSuccess: () {}),
+                          ),
+                          (route) => false,
+                        );
+
+                        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+                          SnackBar(content: Text('Akun berhasil dihapus')),
+                        );
+                      } on FirebaseAuthException catch (e) {
+                        Navigator.pop(context); // Tutup dialog
+                        String message = 'Terjadi kesalahan saat menghapus akun.';
+                        if (e.code == 'wrong-password') {
+                          message = 'Password salah.';
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(message)),
+                        );
+                      }
+                    },
+                    child: Text('Hapus', style: GoogleFonts.poppins(color: const Color.fromARGB(255, 158, 8, 8))),
+                  ),
+                ],
+              )
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final password = passwordController.text.trim();
+        ),
+      );
+    },
+  );
+}
 
-                if (password.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Password harus diisi')),
-                  );
-                  return;
-                }
-
-                try {
-                  final cred = EmailAuthProvider.credential(
-                    email: user!.email!,
-                    password: password,
-                  );
-                  await user.reauthenticateWithCredential(cred);
-                  await user.delete();
-
-                  Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => WelcomePage(onLoginSuccess: () {}),
-                    ),
-                        (route) => false,
-                  );
-
-                  ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-                      SnackBar(content: Text('Akun berhasil dihapus')));
-                } on FirebaseAuthException catch (e) {
-                  String message = 'Terjadi kesalahan saat menghapus akun.';
-                  if (e.code == 'wrong-password') {
-                    message = 'Password salah.';
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(message)),
-                  );
-                }
-              },
-              child: Text('Hapus', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildUserAvatar(String? photoUrl) {
     if (photoUrl == null || photoUrl.isEmpty) {
