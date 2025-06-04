@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gaulhidroponik/acc/register_page.dart';
+import 'package:gaulhidroponik/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:gaulhidroponik/pages/home_page.dart';
@@ -33,9 +34,10 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login berhasil')),
       );
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (context) => MyHomePage()),
+        (Route<dynamic> route) => false,
       );
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
