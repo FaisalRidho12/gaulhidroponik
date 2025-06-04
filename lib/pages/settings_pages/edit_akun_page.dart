@@ -11,9 +11,10 @@ class _EditAkunPageState extends State<EditAkunPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final List<String> avatarAssets = [
-    'assets/profiles/andika1.jpg',
-    'assets/profiles/andika2.jpg',
-    'assets/profiles/andika3.jpg',
+    'assets/profiles/1.png',
+    'assets/profiles/2.png',
+    'assets/profiles/3.png',
+    'assets/profiles/4.png',
   ];
 
   String? selectedAvatarAsset;
@@ -125,7 +126,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: usernameController,
-                  cursorColor: Color(0xFF728C5A),
+                  cursorColor: Color.fromARGB(255, 250, 255, 245),
                   decoration: InputDecoration(
                     labelText: 'Username Baru',
                     labelStyle: GoogleFonts.poppins(color: Colors.white70),
@@ -214,7 +215,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
                 TextField(
                   controller: oldPasswordController,
                   obscureText: true,
-                  cursorColor: Color(0xFF728C5A),
+                  cursorColor: Color.fromARGB(255, 250, 255, 245),
                   decoration: InputDecoration(
                     labelText: 'Password Lama',
                     labelStyle: GoogleFonts.poppins(color: Colors.white70),
@@ -231,7 +232,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
                 TextField(
                   controller: newPasswordController,
                   obscureText: true,
-                  cursorColor: Color(0xFF728C5A),
+                  cursorColor: Color.fromARGB(255, 250, 255, 245),
                   decoration: InputDecoration(
                     labelText: 'Password Baru',
                     labelStyle: GoogleFonts.poppins(color: Colors.white70),

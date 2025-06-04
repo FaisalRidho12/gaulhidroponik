@@ -130,7 +130,7 @@ void _deleteAccount(BuildContext context) {
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                cursorColor: Color(0xFF728C5A),
+                cursorColor: Color.fromARGB(255, 250, 255, 245),
                 decoration: InputDecoration(
                   labelText: 'Password',
                   labelStyle: GoogleFonts.poppins(color: Colors.white70),
