@@ -4,7 +4,6 @@ import 'package:gaulhidroponik/acc/register_page.dart';
 import 'package:gaulhidroponik/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:gaulhidroponik/pages/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   @override
