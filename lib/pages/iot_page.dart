@@ -11,7 +11,7 @@ class IotPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'IoT',
+          '',
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -19,68 +19,118 @@ class IotPage extends StatelessWidget {
           ),
         ),
         backgroundColor: const Color(0xFF728C5A),
+        elevation: 0,
       ),
       backgroundColor: const Color(0xFF728C5A),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // Hapus mainAxisAlignment supaya mulai dari atas
           children: [
-            // Tambahan elemen dekoratif (ikon tanaman)
-            const Icon(Icons.local_florist, color: Colors.white, size: 60),
-            const SizedBox(height: 30),
-
-            // Baris tombol (horizontal)
+            const SizedBox(height: 24), // Jarak dari atas layar
+            const Icon(
+              Icons.devices_other_rounded,
+              size: 100,
+              color: Colors.white,
+            ),
+            const SizedBox(height: 24),
+            // Box dengan border dan teks di dalamnya
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Kontrol dan Monitoring Sistem Hidroponik',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFEAF1B1),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pantau dan kendalikan perangkat IoT Anda secara langsung.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Tombol Monitoring dan Controlling
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Tombol Monitoring
-                ElevatedButton.icon(
+                _buildFeatureButton(
+                  context,
+                  icon: Icons.monitor_heart_rounded,
+                  label: 'Monitoring',
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const IotMonitoringPage()),
                     );
                   },
-                  icon: const Icon(Icons.visibility, color: Colors.white),
-                  label: const Text('Monitoring'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.transparent,
-                    side: const BorderSide(color: Colors.white, width: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
-                const SizedBox(width: 20),
-
-                // Tombol Controlling
-                ElevatedButton.icon(
+                const SizedBox(width: 24),
+                _buildFeatureButton(
+                  context,
+                  icon: Icons.settings_remote_rounded,
+                  label: 'Controlling',
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => IotControllingPage()),
                     );
                   },
-                  icon: const Icon(Icons.tune, color: Colors.white),
-                  label: const Text('Controlling'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.transparent,
-                    side: const BorderSide(color: Colors.white, width: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
               ],
             ),
+            const Spacer(), // Dorong konten ke atas tapi beri space bawah
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureButton(BuildContext context,
+      {required IconData icon, required String label, required VoidCallback onPressed}) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF728C5A),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 8,
+        shadowColor: Colors.black45,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 36),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
