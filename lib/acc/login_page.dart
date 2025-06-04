@@ -121,19 +121,26 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           enabled: !_isLoading,
+                          cursorColor: Color(0xFF728C5A),
                           decoration: InputDecoration(
                             labelText: "Email",
                             labelStyle: GoogleFonts.poppins(),
+                            floatingLabelStyle: GoogleFonts.poppins(
+                              color: Color(0xFF728C5A),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade800),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade800),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Color(0xFF728C5A), width: 2), // ← diubah
+                              borderSide: BorderSide(
+                                  color: Color(0xFF728C5A),
+                                  width: 2), // ← diubah
                             ),
                           ),
                         ),
@@ -145,19 +152,26 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _passwordController,
                           obscureText: true,
                           enabled: !_isLoading,
+                          cursorColor: Color(0xFF728C5A),
                           decoration: InputDecoration(
                             labelText: "Password",
                             labelStyle: GoogleFonts.poppins(),
+                            floatingLabelStyle: GoogleFonts.poppins(
+                              color: Color(0xFF728C5A),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade800),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade800),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Color(0xFF728C5A), width: 2), // ← diubah
+                              borderSide: BorderSide(
+                                  color: Color(0xFF728C5A),
+                                  width: 2), // ← diubah
                             ),
                           ),
                         ),
@@ -169,7 +183,8 @@ class _LoginPageState extends State<LoginPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => RegisterPage()),
+                              MaterialPageRoute(
+                                  builder: (context) => RegisterPage()),
                             );
                           },
                           child: RichText(
@@ -207,21 +222,21 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           child: _isLoading
                               ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 3,
-                            ),
-                          )
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  ),
+                                )
                               : Text(
-                            "Login",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+                                  "Login",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                     ],

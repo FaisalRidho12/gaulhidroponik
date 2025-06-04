@@ -32,7 +32,10 @@ class _RegisterPageState extends State<RegisterPage> {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (username.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (username.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Semua field harus diisi!')),
       );
@@ -49,7 +52,8 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -74,7 +78,8 @@ class _RegisterPageState extends State<RegisterPage> {
       } else if (e.code == 'weak-password') {
         message = 'Password terlalu lemah';
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -147,19 +152,25 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: TextField(
                           controller: _usernameController,
                           enabled: !_isLoading,
+                          cursorColor: Color(0xFF728C5A),
                           decoration: InputDecoration(
                             labelText: "Username",
                             labelStyle: GoogleFonts.poppins(),
+                            floatingLabelStyle: GoogleFonts.poppins(
+                              color: Color(0xFF728C5A),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade800),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade800),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Color(0xFF728C5A), width: 2),
+                              borderSide: BorderSide(
+                                  color: Color(0xFF728C5A), width: 2),
                             ),
                           ),
                         ),
@@ -171,19 +182,25 @@ class _RegisterPageState extends State<RegisterPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           enabled: !_isLoading,
+                          cursorColor: Color(0xFF728C5A),
                           decoration: InputDecoration(
                             labelText: "Email",
                             labelStyle: GoogleFonts.poppins(),
+                            floatingLabelStyle: GoogleFonts.poppins(
+                              color: Color(0xFF728C5A),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade800),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade800),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Color(0xFF728C5A), width: 2),
+                              borderSide: BorderSide(
+                                  color: Color(0xFF728C5A), width: 2),
                             ),
                           ),
                         ),
@@ -195,19 +212,25 @@ class _RegisterPageState extends State<RegisterPage> {
                           controller: _passwordController,
                           obscureText: true,
                           enabled: !_isLoading,
+                          cursorColor: Color(0xFF728C5A),
                           decoration: InputDecoration(
                             labelText: "Password",
                             labelStyle: GoogleFonts.poppins(),
+                            floatingLabelStyle: GoogleFonts.poppins(
+                              color: Color(0xFF728C5A),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade800),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade800),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Color(0xFF728C5A), width: 2),
+                              borderSide: BorderSide(
+                                  color: Color(0xFF728C5A), width: 2),
                             ),
                           ),
                         ),
@@ -219,19 +242,25 @@ class _RegisterPageState extends State<RegisterPage> {
                           controller: _confirmPasswordController,
                           obscureText: true,
                           enabled: !_isLoading,
+                          cursorColor: Color(0xFF728C5A),
                           decoration: InputDecoration(
                             labelText: "Confirm Password",
                             labelStyle: GoogleFonts.poppins(),
+                            floatingLabelStyle: GoogleFonts.poppins(
+                              color: Color(0xFF728C5A),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade800),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade800),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Color(0xFF728C5A), width: 2),
+                              borderSide: BorderSide(
+                                  color: Color(0xFF728C5A), width: 2),
                             ),
                           ),
                         ),
@@ -243,7 +272,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => LoginPage()),
+                              MaterialPageRoute(
+                                  builder: (context) => LoginPage()),
                             );
                           },
                           child: RichText(
@@ -281,21 +311,21 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           child: _isLoading
                               ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 3,
-                            ),
-                          )
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  ),
+                                )
                               : Text(
-                            "Register",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+                                  "Register",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
