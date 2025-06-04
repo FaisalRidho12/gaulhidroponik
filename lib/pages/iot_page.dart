@@ -104,6 +104,7 @@ class _IotPageState extends State<IotPage> with SingleTickerProviderStateMixin {
                     _buildFeatureButton(
                       context,
                       icon: Icons.monitor_heart_rounded,
+                      iconColor: Color(0xFF728C5A),
                       label: 'Monitoring',
                       heroTag: 'monitor',
                       onPressed: () {
@@ -119,6 +120,7 @@ class _IotPageState extends State<IotPage> with SingleTickerProviderStateMixin {
                     _buildFeatureButton(
                       context,
                       icon: Icons.settings_remote_rounded,
+                      iconColor: Color(0xFF728C5A),
                       label: 'Controlling',
                       heroTag: 'control',
                       onPressed: () {
@@ -147,6 +149,7 @@ class _IotPageState extends State<IotPage> with SingleTickerProviderStateMixin {
     required String label,
     required VoidCallback onPressed,
     required String heroTag,
+    Color iconColor = const Color(0xFF728C5A),
   }) {
     return Hero(
       tag: heroTag,
@@ -156,7 +159,8 @@ class _IotPageState extends State<IotPage> with SingleTickerProviderStateMixin {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF728C5A),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 8,
           shadowColor: Colors.black45,
         ),
