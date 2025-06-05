@@ -259,7 +259,12 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: (_mode == 'manual') ? null : _showPlantInfoDialog,
+                    onTap: _mode == 'manual' ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const IotControllingPage()),
+                      );
+                    } : null,
                     child: const Icon(Icons.info_outline, color: Color(0xFFEAF1B1)),
                   ),
                   const SizedBox(width: 8),
