@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:lottie/lottie.dart';
 import 'package:gaulhidroponik/pages/iot_pages/iot_monitoring_page.dart';
+import 'package:gaulhidroponik/pages/iot_pages/iot_controlling_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -275,7 +276,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            if (_volumeAir != null && _volumeAir! < 15)
+            if (_volumeAir != null)
               Container(
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
@@ -292,15 +293,20 @@ class _HomePageState extends State<HomePage> {
                           MaterialPageRoute(builder: (context) => const IotMonitoringPage()),
                         );
                       },
-                      child: const Icon(Icons.warning_amber_outlined, color: Color(0xFFEAF1B1)),
+                      child: Icon(
+                        _volumeAir! < 15 ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+                        color: const Color(0xFFEAF1B1),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "Volume air kurang, segera isi ulang!",
+                        _volumeAir! < 15
+                            ? "Volume air kurang, segera isi ulang!"
+                            : "Volume air cukup!",
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: Color(0xFFFFFFFF),
+                          color: const Color(0xFFFFFFFF),
                         ),
                       ),
                     ),
@@ -308,7 +314,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             const SizedBox(height: 20),
-            if (_plant != null && _tds != null && _tdsMin != null && _tdsMax != null)
+            if (_mode == 'otomatis' && _plant != null && _tds != null && _tdsMin != null && _tdsMax != null)
               (() {
                 if (_tds! < _tdsMin!) {
                   return Container(
@@ -377,7 +383,41 @@ class _HomePageState extends State<HomePage> {
                 } else {
                   return const SizedBox.shrink();
                 }
-              })(),
+              })()
+            else if (_mode == 'manual')
+              Container(
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFEAF1B1)),
+                ),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const IotControllingPage()),
+                        );
+                      },
+                      child: const Icon(Icons.info_outline, color: Color(0xFFEAF1B1)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Pilih tanaman untuk pengontrolan otomatis!",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: const Color(0xFFFFFFFF),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              const SizedBox.shrink(),
           ],
         ),
       ),
