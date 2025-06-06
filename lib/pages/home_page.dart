@@ -14,6 +14,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final List<String> plants = ['Bayam', 'Selada'];
+  int _currentPlantIndex = 0;
   String? displayName;
   String selectedText = 'Memuat data...';
 
@@ -127,27 +129,20 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _showPlantInfoDialog() {
-    // Ambil nama sayuran tanpa prefix kalimat agar mudah dicocokkan
-    String plantName = (_plant ?? '').toLowerCase();
-
+  void _showPlantInfoDialog(String plantName) {
+    String plantLower = plantName.toLowerCase();
     String description = '';
     String phRange = '';
     String ppmRange = '';
 
-    // Contoh data info untuk beberapa jenis sayuran
-    if (plantName.contains('selada')) {
+    if (plantLower.contains('selada')) {
       description = 'Selada adalah sayuran daun yang mudah tumbuh, cocok untuk hidroponik.';
       phRange = 'pH ideal: 6.0 - 7.0';
       ppmRange = 'PPM nutrisi: 560 - 840';
-    } else if (plantName.contains('bayam')) {
+    } else if (plantLower.contains('bayam')) {
       description = 'Bayam kaya akan zat besi dan nutrisi penting, cocok hidroponik.';
       phRange = 'pH ideal: 6.5 - 7.5';
       ppmRange = 'PPM nutrisi: 1000 - 1500';
-    } else if (plantName.isEmpty) {
-      description = 'Jenis tanaman belum dipilih.';
-      phRange = '';
-      ppmRange = '';
     } else {
       description = 'Informasi sayuran belum tersedia.';
       phRange = 'pH ideal: N/A';
@@ -179,10 +174,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: GoogleFonts.poppins(color: Colors.white),
-                ),
+                Text(description, style: GoogleFonts.poppins(color: Colors.white)),
                 if (phRange.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(phRange, style: GoogleFonts.poppins(color: Colors.white)),
@@ -249,6 +241,107 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 20),
+        Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFEAF1B1)),
+              ),
+              child: Row(
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Informasi tanaman',
+                        style: TextStyle(
+                          color: Color(0xFFEAF1B1),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      InkWell(
+                        onTap: () {
+                          _showPlantInfoDialog(plants[_currentPlantIndex]);
+                        },
+                        child: const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFFEAF1B1),
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        plants[_currentPlantIndex],
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 150,
+                      child: PageView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: plants.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentPlantIndex = index;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          String plant = plants[index].toLowerCase();
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/icons/$plant.png',
+                                height: 200,
+                                width: 200,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Posisi indikator titik di bawah tengah container
+            Positioned(
+              bottom: 6, // jarak sedikit dari border bawah
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(plants.length, (index) {
+                  bool isActive = index == _currentPlantIndex;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: isActive ? 12 : 8,
+                    height: isActive ? 12 : 8,
+                    decoration: BoxDecoration(
+                      color: isActive ? const Color(0xFFEAF1B1) : Colors.white.withOpacity(0.4),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
@@ -259,12 +352,12 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: _mode == 'manual' ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const IotControllingPage()),
-                      );
-                    } : null,
+                    onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const IotControllingPage()),
+                        );
+                    },
                     child: const Icon(Icons.info_outline, color: Color(0xFFEAF1B1)),
                   ),
                   const SizedBox(width: 8),
