@@ -157,7 +157,7 @@ class _HomePageState extends State<HomePage> {
           child: Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF).withOpacity(0.2),
+              color: const Color(0xFF728C5A).withOpacity(0.8),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFEAF1B1)),
             ),
@@ -265,7 +265,9 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 4),
                       InkWell(
                         onTap: () {
-                          _showPlantInfoDialog(plants[_currentPlantIndex]);
+                          if (_plant != null) {
+                            _showPlantInfoDialog(_plant!);
+                          }
                         },
                         child: const Icon(
                           Icons.info_outline,
@@ -275,7 +277,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        plants[_currentPlantIndex],
+                        _plant ?? 'Memuat...',
                         style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontSize: 20,
@@ -288,55 +290,17 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: SizedBox(
                       height: 150,
-                      child: PageView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: plants.length,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentPlantIndex = index;
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          String plant = plants[index].toLowerCase();
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/icons/$plant.png',
-                                height: 200,
-                                width: 200,
-                                fit: BoxFit.contain,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+                      child: _plant != null
+                          ? Image.asset(
+                              'assets/icons/${_plant!.toLowerCase()}.png',
+                              height: 200,
+                              width: 200,
+                              fit: BoxFit.contain,
+                            )
+                          : const Center(child: CircularProgressIndicator()),
                     ),
                   ),
                 ],
-              ),
-            ),
-            // Posisi indikator titik di bawah tengah container
-            Positioned(
-              bottom: 6, // jarak sedikit dari border bawah
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(plants.length, (index) {
-                  bool isActive = index == _currentPlantIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: isActive ? 12 : 8,
-                    height: isActive ? 12 : 8,
-                    decoration: BoxDecoration(
-                      color: isActive ? const Color(0xFFEAF1B1) : Colors.white.withOpacity(0.4),
-                      shape: BoxShape.circle,
-                    ),
-                  );
-                }),
               ),
             ),
           ],

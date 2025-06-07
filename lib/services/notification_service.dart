@@ -17,7 +17,7 @@ class NotificationService {
     await _notificationsPlugin.initialize(initializationSettings);
   }
 
-  static Future<void> showNotification(String title, String body) async {
+  static Future<void> showNotification(String title, String body, {required String payload}) async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'volume_air_channel',
       'Volume Air Notif',
