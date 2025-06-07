@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:lottie/lottie.dart';
 import 'package:gaulhidroponik/pages/iot_pages/iot_monitoring_page.dart';
 import 'package:gaulhidroponik/pages/iot_pages/iot_controlling_page.dart';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,7 +16,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final List<String> plants = ['Bayam', 'Selada'];
-  int _currentPlantIndex = 0;
   String? displayName;
   String selectedText = 'Memuat data...';
 
@@ -33,10 +33,18 @@ class _HomePageState extends State<HomePage> {
 
   String? _plant;
   String? _mode;
+  
+  int _manualIndex = 0;
+  PageController _pageController = PageController();
+  Timer? _autoSlideTimer;
+
+  
 
   @override
   void initState() {
     super.initState();
+
+    _startAutoSlideIfManual();
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -50,6 +58,7 @@ class _HomePageState extends State<HomePage> {
         _mode = (modeValue is String && modeValue.isNotEmpty) ? modeValue.toLowerCase() : null;
         _updateSelectedText();
       });
+      _startAutoSlideIfManual();
     });
 
     // Listen jenis tanaman
@@ -88,6 +97,7 @@ class _HomePageState extends State<HomePage> {
         }
       });
     });
+    
 
     // Listen tds_min
     _tdsMinRef.onValue.listen((event) {
@@ -115,6 +125,29 @@ class _HomePageState extends State<HomePage> {
       });
     });
   }
+
+  void _startAutoSlideIfManual() {
+    if (_mode == "manual") {
+      _autoSlideTimer?.cancel();
+      _autoSlideTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+        if (_pageController.hasClients) {
+          int nextPlantIndex = (_manualIndex + 1) % plants.length;
+          _pageController.animateToPage(
+            nextPlantIndex,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+          setState(() {
+            _manualIndex = nextPlantIndex;
+            _plant = plants[nextPlantIndex]; // Update tanaman yang ditampilkan
+          });
+        }
+      });
+    } else {
+      _autoSlideTimer?.cancel();
+    }
+  }
+
 
   void _updateSelectedText() {
     if (_mode == null) {
@@ -290,19 +323,61 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: SizedBox(
                       height: 150,
-                      child: _plant != null
-                          ? Image.asset(
-                              'assets/icons/${_plant!.toLowerCase()}.png',
-                              height: 200,
-                              width: 200,
-                              fit: BoxFit.contain,
+                      child: _mode == "manual"
+                          ? PageView(
+                              controller: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _manualIndex = index;
+                                });
+                              },
+                              children: plants.map((plant) {
+                                return Image.asset(
+                                  'assets/icons/${plant.toLowerCase()}.png',
+                                  height: 200,
+                                  width: 200,
+                                  fit: BoxFit.contain,
+                                );
+                              }).toList(),
                             )
-                          : const Center(child: CircularProgressIndicator()),
+                          : (_plant != null
+                              ? Image.asset(
+                                  'assets/icons/${_plant!.toLowerCase()}.png',
+                                  height: 200,
+                                  width: 200,
+                                  fit: BoxFit.contain,
+                                )
+                              : const Center(child: CircularProgressIndicator())),
                     ),
                   ),
                 ],
               ),
             ),
+            // Dot indikator yang diposisikan di tengah bawah container
+            if (_mode == "manual")
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 8, // Sesuaikan jarak dari bawah
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(plants.length, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _manualIndex == index
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.3),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 20),
