@@ -30,7 +30,7 @@ class _IotPageState extends State<IotPage> with SingleTickerProviderStateMixin {
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          'IoT Monitoring & Controlling',
+          'Internet of Things',
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.bold,
