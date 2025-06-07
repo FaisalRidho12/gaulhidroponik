@@ -15,10 +15,14 @@ class NotifikasiPage extends StatefulWidget {
 class _NotifikasiPageState extends State<NotifikasiPage> {
   late Future<List<Map<String, dynamic>>> _notificationsFuture;
 
+  List<String> _targetTimes = [];
+  final TextEditingController _timeController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _notificationsFuture = _loadNotifications();
+    _loadTargetTimes();
   }
 
   Future<List<Map<String, dynamic>>> _loadNotifications() async {
@@ -29,6 +33,18 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
     return notifList.cast<Map<String, dynamic>>();
   }
 
+  Future<void> _loadTargetTimes() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _targetTimes = prefs.getStringList('target_times') ?? [];
+    });
+  }
+
+  Future<void> _saveTargetTimes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('target_times', _targetTimes);
+  }
+
   String _formatDateTime(String isoString) {
     try {
       final dt = DateTime.parse(isoString);
@@ -36,6 +52,60 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
     } catch (_) {
       return isoString;
     }
+  }
+
+  Future<void> _addTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      final formatted = picked.format(context);
+      // Format jadi HH:mm (24h)
+      final hour = picked.hour.toString().padLeft(2, '0');
+      final minute = picked.minute.toString().padLeft(2, '0');
+      final time24 = '$hour:$minute';
+
+      if (!_targetTimes.contains(time24)) {
+        setState(() {
+          _targetTimes.add(time24);
+          _targetTimes.sort();
+        });
+        await _saveTargetTimes();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Waktu notifikasi ditambahkan')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Waktu sudah ada')),
+        );
+      }
+    }
+  }
+
+  void _removeTime(String time) async {
+    setState(() {
+      _targetTimes.remove(time);
+    });
+    await _saveTargetTimes();
+  }
+
+  @override
+  void dispose() {
+    _timeController.dispose();
+    super.dispose();
+  }
+
+  bool _isValidTimeFormat(String input) {
+    // Validasi format HH:mm dengan regex
+    final regExp = RegExp(r'^\d{2}:\d{2}$');
+    if (!regExp.hasMatch(input)) return false;
+
+    final parts = input.split(':');
+    final hour = int.tryParse(parts[0]) ?? -1;
+    final minute = int.tryParse(parts[1]) ?? -1;
+
+    return hour >= 0 && hour < 24 && minute >= 0 && minute < 60;
   }
 
   @override
@@ -53,86 +123,170 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
         backgroundColor: const Color(0xFF728C5A),
       ),
       backgroundColor: const Color(0xFF728C5A),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _notificationsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Belum ada notifikasi'));
-          }
-
-          final notifications = snapshot.data!;
-          // Urutkan notifikasi dari terbaru ke lama
-          notifications.sort((a, b) {
-            final dtA = DateTime.parse(a['datetime']);
-            final dtB = DateTime.parse(b['datetime']);
-            return dtB.compareTo(dtA);
-          });
-
-          return ListView.separated(
-            itemCount: notifications.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            padding: const EdgeInsets.all(12),
-            itemBuilder: (context, index) {
-              final notif = notifications[index];
-              final title = notif['title'] ?? 'Tidak ada judul';
-              final message = notif['message'] ?? '';
-              final datetime = notif['datetime'] ?? '';
-
-              return Container(
-                padding: const EdgeInsets.all(12.0),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Jadwal Notifikasi
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFEAF1B1)),
+                  border: Border.all(color: const Color(0xFFEBFADC), width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                  color: Colors.white.withOpacity(0.1),
                 ),
-                child: Row(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InkWell(
-                      child: const Icon(Icons.notifications, color: Color(0xFFEAF1B1)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Jadwal Notifikasi:',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _addTime(context),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Tambah'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEAF1B1),
+                            foregroundColor: Colors.black,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
+                    const SizedBox(height: 10),
+                    ..._targetTimes.map((time) => Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          time,
+                          style: GoogleFonts.poppins(color: Colors.white),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          onPressed: () => _removeTime(time),
+                        ),
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(color: Colors.white, height: 32),
+            // Riwayat Notifikasi
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Riwayat Notifikasi:',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _notificationsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Belum ada notifikasi',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
+
+                final notifications = snapshot.data!;
+                notifications.sort((a, b) {
+                  final dtA = DateTime.parse(a['datetime']);
+                  final dtB = DateTime.parse(b['datetime']);
+                  return dtB.compareTo(dtA);
+                });
+
+                return ListView.separated(
+                  itemCount: notifications.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  padding: const EdgeInsets.all(12),
+                  itemBuilder: (context, index) {
+                    final notif = notifications[index];
+                    final title = notif['title'] ?? 'Tidak ada judul';
+                    final message = notif['message'] ?? '';
+                    final datetime = notif['datetime'] ?? '';
+
+                    return Container(
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFEAF1B1)),
+                      ),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            title,
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            message,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: Color(0xFFEAF1B1),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _formatDateTime(datetime),
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.white,
+                          const Icon(Icons.notifications, color: Color(0xFFEAF1B1)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  message,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: const Color(0xFFEAF1B1),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _formatDateTime(datetime),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
