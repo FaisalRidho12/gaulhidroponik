@@ -9,46 +9,41 @@ import 'notification_service.dart';
 
 class FirebaseListenerService {
   late DatabaseReference _volumeAirRef;
-  StreamSubscription<DatabaseEvent>? _volumeAirSubscription;
-
-  // Simpan jam:menit notifikasi terakhir agar tidak duplikat dalam 1 menit
-  String? _lastNotifiedHHmm;
+  Timer? _timer;
+  String? _lastNotifiedTime; // Format: "yyyy-MM-dd HH:mm"
 
   void startListening() {
     _volumeAirRef = FirebaseDatabase.instance.ref('/hidroponik/monitoring/volume_air');
 
-    _volumeAirSubscription = _volumeAirRef.onValue.listen((DatabaseEvent event) {
-      final data = event.snapshot.value;
-      if (data != null) {
-        double volume = 0;
-        try {
-          volume = double.parse(data.toString());
-        } catch (e) {
-          print('Parsing volume_air error: $e');
-          return;
-        }
+    // Cek setiap 1 menit
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) async {
+      final now = DateTime.now();
+      final currentHHmm = DateFormat('HH:mm').format(now);
+      final fullDateTime = DateFormat('yyyy-MM-dd HH:mm').format(now);
 
-        final now = DateTime.now();
-        final currentHHmm = DateFormat('HH:mm').format(now); // contoh: 07:00
+      final prefs = await SharedPreferences.getInstance();
+      final targetTimes = prefs.getStringList('target_times') ?? [];
 
-        // Waktu target notifikasi yang baru
-        final targetTimes = ['23:16', '23:18', '23:24', '23:25'];
+      if (targetTimes.contains(currentHHmm) && _lastNotifiedTime != fullDateTime) {
+        final snapshot = await _volumeAirRef.get();
+        final data = snapshot.value;
 
-        if (targetTimes.contains(currentHHmm) && _lastNotifiedHHmm != currentHHmm) {
+        if (data != null) {
+          double volume = 0;
+          try {
+            volume = double.parse(data.toString());
+          } catch (e) {
+            print('Parsing error: $e');
+            return;
+          }
+
           if (volume < 16) {
             final title = 'Peringatan Volume Air';
             final message = 'Volume air kurang, segera isi ulang!';
 
-            NotificationService.showNotification(
-              title,
-              message,
-              payload: 'go_to_monitoring',
-            );
-
-            // Simpan notifikasi ke SharedPreferences
+            NotificationService.showNotification(title, message, payload: 'go_to_monitoring');
             _saveNotification(title, message);
-
-            _lastNotifiedHHmm = currentHHmm;
+            _lastNotifiedTime = fullDateTime; // Simpan waktu notifikasi terakhir
           }
         }
       }
@@ -56,20 +51,14 @@ class FirebaseListenerService {
   }
 
   void stopListening() {
-    _volumeAirSubscription?.cancel();
+    _timer?.cancel();
   }
 
   Future<void> _saveNotification(String title, String message) async {
     final prefs = await SharedPreferences.getInstance();
-
     final String? notifJson = prefs.getString('saved_notifications');
-    List<dynamic> notifList = [];
+    List<dynamic> notifList = notifJson != null ? jsonDecode(notifJson) : [];
 
-    if (notifJson != null) {
-      notifList = jsonDecode(notifJson);
-    }
-
-    // Tambahkan notifikasi baru
     notifList.add({
       'title': title,
       'message': message,
