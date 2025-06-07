@@ -33,12 +33,12 @@ class _HomePageState extends State<HomePage> {
 
   String? _plant;
   String? _mode;
-  
+
   int _manualIndex = 0;
   PageController _pageController = PageController();
   Timer? _autoSlideTimer;
 
-  
+
 
   @override
   void initState() {
@@ -97,7 +97,7 @@ class _HomePageState extends State<HomePage> {
         }
       });
     });
-    
+
 
     // Listen tds_min
     _tdsMinRef.onValue.listen((event) {
@@ -134,7 +134,7 @@ class _HomePageState extends State<HomePage> {
           int nextPlantIndex = (_manualIndex + 1) % plants.length;
           _pageController.animateToPage(
             nextPlantIndex,
-            duration: const Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 1000),
             curve: Curves.easeInOut,
           );
           setState(() {
@@ -274,113 +274,114 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 20),
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFEAF1B1)),
-              ),
-              child: Row(
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFEAF1B1)),
+                  ),
+                  child: Row(
                     children: [
-                      const Text(
-                        'Informasi tanaman',
-                        style: TextStyle(
-                          color: Color(0xFFEAF1B1),
-                          fontSize: 14,
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Informasi tanaman',
+                            style: TextStyle(
+                              color: Color(0xFFEAF1B1),
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          InkWell(
+                            onTap: () {
+                              if (_plant != null) {
+                                _showPlantInfoDialog(_plant!);
+                              }
+                            },
+                            child: const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFFEAF1B1),
+                              size: 30,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _plant ?? 'Memuat...',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      InkWell(
-                        onTap: () {
-                          if (_plant != null) {
-                            _showPlantInfoDialog(_plant!);
-                          }
-                        },
-                        child: const Icon(
-                          Icons.info_outline,
-                          color: Color(0xFFEAF1B1),
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _plant ?? 'Memuat...',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 150,
+                          child: _mode == "manual"
+                              ? PageView(
+                            controller: _pageController,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _manualIndex = index;
+                                _plant = plants[index]; // Ubah nama tanaman saat slide
+                              });
+                            },
+                            children: plants.map((plant) {
+                              return Image.asset(
+                                'assets/icons/${plant.toLowerCase()}.png',
+                                height: 200,
+                                width: 200,
+                                fit: BoxFit.contain,
+                              );
+                            }).toList(),
+                          )
+                              : (_plant != null
+                              ? Image.asset(
+                            'assets/icons/${_plant!.toLowerCase()}.png',
+                            height: 200,
+                            width: 200,
+                            fit: BoxFit.contain,
+                          )
+                              : const Center(child: CircularProgressIndicator())),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 150,
-                      child: _mode == "manual"
-                          ? PageView(
-                              controller: _pageController,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _manualIndex = index;
-                                });
-                              },
-                              children: plants.map((plant) {
-                                return Image.asset(
-                                  'assets/icons/${plant.toLowerCase()}.png',
-                                  height: 200,
-                                  width: 200,
-                                  fit: BoxFit.contain,
-                                );
-                              }).toList(),
-                            )
-                          : (_plant != null
-                              ? Image.asset(
-                                  'assets/icons/${_plant!.toLowerCase()}.png',
-                                  height: 200,
-                                  width: 200,
-                                  fit: BoxFit.contain,
-                                )
-                              : const Center(child: CircularProgressIndicator())),
+                ),
+                // Dot indikator yang diposisikan di tengah bawah container
+                if (_mode == "manual")
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 8, // Sesuaikan jarak dari bawah
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(plants.length, (index) {
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _manualIndex == index
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.3),
+                            ),
+                          );
+                        }),
+                      ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
-            // Dot indikator yang diposisikan di tengah bawah container
-            if (_mode == "manual")
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 8, // Sesuaikan jarak dari bawah
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(plants.length, (index) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _manualIndex == index
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.3),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 20),
+            const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
@@ -392,10 +393,10 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   InkWell(
                     onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const IotControllingPage()),
-                        );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const IotControllingPage()),
+                      );
                     },
                     child: const Icon(Icons.info_outline, color: Color(0xFFEAF1B1)),
                   ),
@@ -431,14 +432,14 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                       child: Icon(
-                        _volumeAir! < 15 ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+                        _volumeAir! < 16 ? Icons.warning_amber_outlined : Icons.check_circle_outline,
                         color: const Color(0xFFEAF1B1),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _volumeAir! < 15
+                        _volumeAir! < 16
                             ? "Volume air kurang, segera isi ulang!"
                             : "Volume air cukup!",
                         style: GoogleFonts.poppins(
