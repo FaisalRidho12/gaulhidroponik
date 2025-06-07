@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class EditAkunPage extends StatefulWidget {
   @override
@@ -22,6 +26,7 @@ class _EditAkunPageState extends State<EditAkunPage> {
   @override
   void initState() {
     super.initState();
+    _loadProfileImage();
     final user = _auth.currentUser;
     selectedAvatarAsset = user?.photoURL;
   }
@@ -46,54 +51,119 @@ class _EditAkunPageState extends State<EditAkunPage> {
     }
   }
 
-  void _showAvatarSelectionSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          color: const Color(0xFF728C5A),
-          padding: EdgeInsets.all(16),
-          height: 120,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: avatarAssets.length,
-            separatorBuilder: (_, __) => SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final assetPath = avatarAssets[index];
-              final isSelected = assetPath == selectedAvatarAsset;
-              return GestureDetector(
-                onTap: () async {
-                  await _updateUserPhoto(assetPath);
-                  Navigator.pop(context, true);
-                },
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: AssetImage(assetPath),
-                    ),
-                    if (isSelected)
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black26,
-                        ),
-                        child: Icon(
-                          Icons.check_circle,
-                          color: Colors.greenAccent,
-                          size: 40,
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('user_profile_image');
+    setState(() {
+      selectedAvatarAsset = savedPath ?? _auth.currentUser?.photoURL;
+    });
   }
+
+  Future<void> _pickImageFromGallery() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_profile_image', pickedFile.path);
+      setState(() {
+        selectedAvatarAsset = pickedFile.path;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Foto dari galeri berhasil disimpan')),
+      );
+    }
+  }
+
+
+void _showAvatarSelectionSheet() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Container(
+        color: const Color(0xFF728C5A),
+        padding: EdgeInsets.all(16),
+        height: 180,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // List avatar di kiri
+            Expanded(
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: avatarAssets.length,
+                separatorBuilder: (_, __) => SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final assetPath = avatarAssets[index];
+                  final isSelected = assetPath == selectedAvatarAsset;
+                  return GestureDetector(
+                    onTap: () async {
+                      await _updateUserPhoto(assetPath);
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove('user_profile_image');
+                      Navigator.pop(context, true);
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundImage: AssetImage(assetPath),
+                        ),
+                        if (isSelected)
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black26,
+                            ),
+                            child: Icon(
+                              Icons.check_circle,
+                              color: Colors.greenAccent,
+                              size: 40,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Tombol upload bulat
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                InkWell(
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _pickImageFromGallery();
+                  },
+                  borderRadius: BorderRadius.circular(40),
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.upload,
+                        color: Colors.black,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   void _showEditUsernameDialog() {
     final user = _auth.currentUser;
@@ -331,7 +401,9 @@ class _EditAkunPageState extends State<EditAkunPage> {
                       radius: 100,
                       backgroundColor: Colors.white.withOpacity(0.4),
                       backgroundImage: selectedAvatarAsset != null
-                          ? AssetImage(selectedAvatarAsset!)
+                          ? (selectedAvatarAsset!.startsWith('assets/')
+                              ? AssetImage(selectedAvatarAsset!) as ImageProvider
+                              : FileImage(File(selectedAvatarAsset!)))
                           : null,
                       child: selectedAvatarAsset == null
                           ? Icon(Icons.person, size: 50, color: Colors.grey[700])
