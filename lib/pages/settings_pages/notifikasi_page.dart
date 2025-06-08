@@ -72,13 +72,49 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
           _targetTimes.sort();
         });
         await _saveTargetTimes();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Waktu notifikasi ditambahkan')),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green.shade700.withOpacity(0.9),
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, color: Colors.white),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Waktu notifikasi berhasil ditambahkan!',
+                      style: GoogleFonts.poppins(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Waktu sudah ada')),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.orange.shade700.withOpacity(0.9),
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Waktu tersebut sudah ditambahkan sebelumnya.',
+                      style: GoogleFonts.poppins(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          );
       }
     }
   }

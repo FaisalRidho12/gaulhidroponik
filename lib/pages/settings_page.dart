@@ -5,6 +5,8 @@ import 'package:gaulhidroponik/acc/welcome_page.dart';
 import 'package:gaulhidroponik/main.dart';
 import 'settings_pages/edit_akun_page.dart';
 import 'settings_pages/notifikasi_page.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   @override
@@ -27,6 +29,28 @@ class _SettingsPageState extends State<SettingsPage> {
       });
     });
   }
+
+void showCustomMessage(BuildContext context, String message, {bool isError = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        message,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      backgroundColor: isError ? Colors.red.shade700 : Color(0xFF728C5A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 3),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    ),
+  );
+}
+
 
   void _logout(BuildContext context) async {
     showDialog(
@@ -157,9 +181,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         final password = passwordController.text.trim();
 
                         if (password.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Password harus diisi')),
-                          );
+                          if (password.isEmpty) {
+                              showCustomMessage(context, 'Password harus diisi', isError: true);
+                              return;
+                            }
                           return;
                         }
 
@@ -177,19 +202,14 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                                 (route) => false,
                           );
-
-                          ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-                            SnackBar(content: Text('Akun berhasil dihapus')),
-                          );
+                            showCustomMessage(navigatorKey.currentContext!, 'Akun berhasil dihapus');
                         } on FirebaseAuthException catch (e) {
                           Navigator.pop(context); // Tutup dialog
                           String message = 'Terjadi kesalahan saat menghapus akun.';
-                          if (e.code == 'wrong-password') {
-                            message = 'Password salah.';
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(message)),
-                          );
+                            if (e.code == 'wrong-password') {
+                              message = 'Password salah.';
+                            }
+                            showCustomMessage(context, message, isError: true);
                         }
                       },
                       child: Text('Hapus', style: GoogleFonts.poppins(color: const Color.fromARGB(255, 158, 8, 8))),
@@ -205,34 +225,66 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
 
-  Widget _buildUserAvatar(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) {
-      // Jika tidak ada foto profil, tampilkan icon default
-      return CircleAvatar(
-        radius: 60,
-        backgroundColor: Colors.white.withOpacity(0.4),
-        child: Icon(
-          Icons.person,
-          size: 60,
-          color: Colors.grey[700],
-        ),
-      );
-    } else if (photoUrl.startsWith('http')) {
-      // Jika photoUrl berupa URL jaringan (misal Google profile photo)
-      return CircleAvatar(
-        radius: 80,
-        backgroundColor: Colors.white.withOpacity(0.4),
-        backgroundImage: NetworkImage(photoUrl),
-      );
-    } else {
-      // Jika photoUrl diasumsikan path asset lokal
-      return CircleAvatar(
-        radius: 80,
-        backgroundColor: Colors.white.withOpacity(0.4),
-        backgroundImage: AssetImage(photoUrl),
-      );
-    }
-  }
+Widget _buildUserAvatar(String? photoUrl) {
+  // Cek dulu di SharedPreferences untuk gambar lokal
+  return FutureBuilder<SharedPreferences>(
+    future: SharedPreferences.getInstance(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return _buildDefaultAvatar();
+      }
+      
+      final prefs = snapshot.data!;
+      final localImagePath = prefs.getString('user_profile_image');
+      
+      // Prioritaskan gambar lokal jika ada
+      if (localImagePath != null && localImagePath.isNotEmpty) {
+        return CircleAvatar(
+          radius: 60,
+          backgroundColor: Colors.white.withOpacity(0.4),
+          backgroundImage: FileImage(File(localImagePath)),
+        );
+      }
+      // Jika tidak ada gambar lokal, gunakan photoURL dari Firebase
+      else if (photoUrl != null && photoUrl.isNotEmpty) {
+        if (photoUrl.startsWith('http')) {
+          return CircleAvatar(
+            radius: 60,
+            backgroundColor: Colors.white.withOpacity(0.4),
+            backgroundImage: NetworkImage(photoUrl),
+          );
+        } else if (photoUrl.startsWith('assets/')) {
+          return CircleAvatar(
+            radius: 60,
+            backgroundColor: Colors.white.withOpacity(0.4),
+            backgroundImage: AssetImage(photoUrl),
+          );
+        } else {
+          // Anggap sebagai path file lokal
+          return CircleAvatar(
+            radius: 60,
+            backgroundColor: Colors.white.withOpacity(0.4),
+            backgroundImage: FileImage(File(photoUrl)),
+          );
+        }
+      }
+      // Default avatar jika tidak ada gambar
+      return _buildDefaultAvatar();
+    },
+  );
+}
+
+Widget _buildDefaultAvatar() {
+  return CircleAvatar(
+    radius: 60,
+    backgroundColor: Colors.white.withOpacity(0.4),
+    child: Icon(
+      Icons.person,
+      size: 60,
+      color: Colors.grey[700],
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

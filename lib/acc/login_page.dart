@@ -16,6 +16,36 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
 
+void _showCustomSnackBar(String message, {bool isError = false}) {
+  final backgroundColor = isError ? Colors.red.shade400 : Color(0xFF728C5A);
+  final icon = isError ? Icons.error_outline : Icons.check_circle_outline;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      backgroundColor: backgroundColor,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      content: Row(
+        children: [
+          Icon(icon, color: Colors.white),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+      duration: Duration(seconds: 3),
+    ),
+  );
+}
+
+
   void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -30,9 +60,8 @@ class _LoginPageState extends State<LoginPage> {
 
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login berhasil')),
-      );
+      _showCustomSnackBar('Login berhasil');
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => MyHomePage()),
@@ -50,9 +79,7 @@ class _LoginPageState extends State<LoginPage> {
         message = 'Format email tidak valid';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      _showCustomSnackBar(message, isError: true);
     }
   }
 

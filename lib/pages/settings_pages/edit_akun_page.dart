@@ -23,6 +23,25 @@ class _EditAkunPageState extends State<EditAkunPage> {
 
   String? selectedAvatarAsset;
 
+ void showCustomSnackBar(String message, {bool isError = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        message,
+        style: GoogleFonts.poppins(color: Colors.white),
+      ),
+      backgroundColor: isError ? Colors.red[400] :Color.fromARGB(255, 103, 152, 111),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+    ),
+  );
+}
+
+
   @override
   void initState() {
     super.initState();
@@ -40,14 +59,10 @@ class _EditAkunPageState extends State<EditAkunPage> {
         setState(() {
           selectedAvatarAsset = assetPath;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Foto profil berhasil diperbarui')),
-        );
+        showCustomSnackBar('Foto profil berhasil diperbarui');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memperbarui foto profil')),
-      );
+      showCustomSnackBar('Gagal memperbarui foto profil', isError: true);
     }
   }
 
@@ -59,21 +74,36 @@ class _EditAkunPageState extends State<EditAkunPage> {
     });
   }
 
-  Future<void> _pickImageFromGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+Future<void> _pickImageFromGallery() async {
+  final picker = ImagePicker();
+  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    if (pickedFile != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_profile_image', pickedFile.path);
-      setState(() {
-        selectedAvatarAsset = pickedFile.path;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Foto dari galeri berhasil disimpan')),
-      );
+  if (pickedFile != null) {
+    // Upload gambar ke Firebase Storage (jika diperlukan)
+    // Atau langsung simpan path file lokal ke Firebase Auth (tidak direkomendasikan untuk production)
+    
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Simpan path file ke photoURL (ini hanya contoh, untuk production sebaiknya upload ke storage)
+        await user.updatePhotoURL(pickedFile.path);
+        await user.reload();
+        
+        // Juga simpan ke SharedPreferences untuk cache lokal
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_profile_image', pickedFile.path);
+        
+        setState(() {
+          selectedAvatarAsset = pickedFile.path;
+        });
+        
+        showCustomSnackBar('Foto profil berhasil diperbarui');
+      }
+    } catch (e) {
+      showCustomSnackBar('Gagal memperbarui foto profil', isError: true);
     }
   }
+}
 
 
 void _showAvatarSelectionSheet() {
@@ -221,9 +251,7 @@ void _showAvatarSelectionSheet() {
                       onPressed: () async {
                         final newUsername = usernameController.text.trim();
                         if (newUsername.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Username tidak boleh kosong')),
-                          );
+                          showCustomSnackBar('Username tidak boleh kosong', isError: true);
                           return;
                         }
                         try {
@@ -231,13 +259,9 @@ void _showAvatarSelectionSheet() {
                           await user?.reload();
                           setState(() {}); // Refresh UI
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Username berhasil diperbarui')),
-                          );
+                          showCustomSnackBar('Username berhasil diperbarui');
                         } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Gagal memperbarui username')),
-                          );
+                          showCustomSnackBar('Gagal memperbarui Username', isError: true);
                         }
                       },
                       child: Text('Simpan', style: TextStyle(color: Color(0xFFEAF1B1))),
@@ -329,9 +353,7 @@ void _showAvatarSelectionSheet() {
                         final newPassword = newPasswordController.text.trim();
 
                         if (oldPassword.isEmpty || newPassword.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Harap isi semua kolom')),
-                          );
+                          showCustomSnackBar('Harap isi semua kolom', isError: true);
                           return;
                         }
 
@@ -344,9 +366,8 @@ void _showAvatarSelectionSheet() {
                           await user.updatePassword(newPassword);
 
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Password berhasil diubah')),
-                          );
+                          showCustomSnackBar('Password berhasil diperbarui');
+
                         } on FirebaseAuthException catch (e) {
                           String message = 'Terjadi kesalahan';
                           if (e.code == 'wrong-password') {
@@ -354,9 +375,7 @@ void _showAvatarSelectionSheet() {
                           } else if (e.code == 'weak-password') {
                             message = 'Password baru terlalu lemah';
                           }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(message)),
-                          );
+                          showCustomSnackBar(message, isError: true);
                         }
                       },
                       child: Text('Ubah', style: TextStyle(color: Color(0xFFEAF1B1))),

@@ -26,6 +26,34 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+void showCustomSnackBar(String message, {bool isError = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isError ? Icons.error_outline : Icons.check_circle_outline,
+            color: Colors.white,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isError ? Colors.red.shade400 : Color(0xFF728C5A),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      duration: Duration(seconds: 3),
+    ),
+  );
+}
+
+
   void _register() async {
     final username = _usernameController.text.trim();
     final email = _emailController.text.trim();
@@ -36,16 +64,12 @@ class _RegisterPageState extends State<RegisterPage> {
         email.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Semua field harus diisi!')),
-      );
+    showCustomSnackBar('Semua field harus diisi!', isError: true);
       return;
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password dan konfirmasi tidak cocok!')),
-      );
+     showCustomSnackBar('Password dan konfirmasi tidak cocok!', isError: true);
       return;
     }
 
@@ -63,9 +87,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registrasi berhasil!')),
-      );
+      showCustomSnackBar('Registrasi berhasil!');
+
 
       Navigator.pop(context); // Kembali ke halaman sebelumnya
     } on FirebaseAuthException catch (e) {
@@ -78,8 +101,7 @@ class _RegisterPageState extends State<RegisterPage> {
       } else if (e.code == 'weak-password') {
         message = 'Password terlalu lemah';
       }
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      showCustomSnackBar(message, isError: true);
     }
   }
 
