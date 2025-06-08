@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
 void _showCustomSnackBar(String message, {bool isError = false}) {
-  final backgroundColor = isError ? Colors.red.shade400 : Color(0xFF728C5A);
+  final backgroundColor = isError ? Colors.red.shade400 : Color.fromARGB(255, 103, 152, 111);
   final icon = isError ? Icons.error_outline : Icons.check_circle_outline;
 
   ScaffoldMessenger.of(context).showSnackBar(
