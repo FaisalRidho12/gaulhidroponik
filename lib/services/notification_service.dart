@@ -7,7 +7,6 @@ class NotificationService {
 
   static FlutterLocalNotificationsPlugin get plugin => _notificationsPlugin;
 
-  // Tambahkan navigatorKey untuk digunakan di main.dart
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static Future<void> initialize() async {
@@ -21,7 +20,6 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Aksi ketika notifikasi diklik
         if (response.payload == 'go_to_monitoring') {
           navigatorKey.currentState?.pushNamed('/iot-monitoring');
         }
@@ -29,24 +27,32 @@ class NotificationService {
     );
   }
 
-  static Future<void> showNotification(String title, String body, {String? payload}) async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'volume_air_channel',
-      'Volume Air Notif',
-      icon: 'notification_icon',
-      channelDescription: 'Notifikasi untuk volume air',
+  /// Tampilkan notifikasi dengan channel dan icon yang bisa disesuaikan
+  static Future<void> showNotification(
+      String title,
+      String body, {
+        String? payload,
+        String channelId = 'default_channel',
+        String channelName = 'Default Notifications',
+        String icon = '@mipmap/ic_launcher',
+      }) async {
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      icon: icon,
+      channelDescription: 'Notifikasi untuk $channelName',
       importance: Importance.max,
       priority: Priority.high,
     );
 
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+    final platformDetails = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
       0,
       title,
       body,
       platformDetails,
-      payload: payload, // Tambahkan payload
+      payload: payload,
     );
   }
 }
