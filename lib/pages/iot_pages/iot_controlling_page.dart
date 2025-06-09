@@ -46,6 +46,17 @@ class _IotControllingPageState extends State<IotControllingPage> {
 
   Future<void> _updateMode(String newMode) async {
     await _dbRef.child('mode').set(newMode);
+
+    if (newMode == 'otomatis') {
+      // Reset nilai tds_min dan tds_max ke 0 (tetap ada key-nya)
+      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_min').set(0);
+      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_max').set(0);
+    } else if (newMode == 'manual') {
+      // Reset nama, tds_min, tds_max ke string kosong (tetap ada key-nya tapi value kosong)
+      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/nama').set('');
+      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_min').set(0);
+      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_max').set(0);
+    }
   }
 
   Future<void> _updateRelayState(int relayNumber, bool isOn) async {
@@ -140,6 +151,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                   TextFormField(
                     controller: minController,
                     keyboardType: TextInputType.number,
+                    cursorColor: Color(0xFFEAF1B1),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'PPM Minimum',
@@ -161,6 +173,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                   TextFormField(
                     controller: maxController,
                     keyboardType: TextInputType.number,
+                    cursorColor: Color(0xFFEAF1B1),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'PPM Maksimum',
