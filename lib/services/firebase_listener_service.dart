@@ -10,12 +10,21 @@ import 'notification_service.dart';
 class FirebaseListenerService {
   late DatabaseReference _volumeAirRef;
   Timer? _timer;
-  String? _lastNotifiedTime; // Format: "yyyy-MM-dd HH:mm"
+
+  String? _lastVolumeNotifTime;
+  String? _lastTdsLowNotifTime;
+  String? _lastTdsHighNotifTime;
+  final int tdsNotifIntervalMinutes = 5; // Notif TDS tiap 5 menit jika masih tidak sesuai
 
   void startListening() {
     _volumeAirRef = FirebaseDatabase.instance.ref('/hidroponik/monitoring/volume_air');
 
-    // Cek setiap 1 menit
+    final DatabaseReference modeRef = FirebaseDatabase.instance.ref('/hidroponik/control/mode');
+    final DatabaseReference jenisTanamanNamaRef = FirebaseDatabase.instance.ref('/hidroponik/jenisTanaman/nama');
+    final DatabaseReference tdsMinRef = FirebaseDatabase.instance.ref('/hidroponik/jenisTanaman/tds_min');
+    final DatabaseReference tdsMaxRef = FirebaseDatabase.instance.ref('/hidroponik/jenisTanaman/tds_max');
+    final DatabaseReference tdsRef = FirebaseDatabase.instance.ref('/hidroponik/monitoring/tds');
+
     _timer = Timer.periodic(const Duration(minutes: 1), (_) async {
       final now = DateTime.now();
       final currentHHmm = DateFormat('HH:mm').format(now);
@@ -24,28 +33,84 @@ class FirebaseListenerService {
       final prefs = await SharedPreferences.getInstance();
       final targetTimes = prefs.getStringList('target_times') ?? [];
 
-      if (targetTimes.contains(currentHHmm) && _lastNotifiedTime != fullDateTime) {
+      // === NOTIFIKASI VOLUME AIR ===
+      if (targetTimes.contains(currentHHmm) && _lastVolumeNotifTime != fullDateTime) {
         final snapshot = await _volumeAirRef.get();
         final data = snapshot.value;
 
         if (data != null) {
-          double volume = 0;
           try {
-            volume = double.parse(data.toString());
+            final volume = double.parse(data.toString());
+
+            if (volume < 16) {
+              final title = 'Peringatan Volume Air';
+              final message = 'Volume air kurang, segera isi ulang!';
+
+              NotificationService.showNotification(
+                title,
+                message,
+                payload: 'go_to_monitoring',
+                channelId: 'volume_air_channel',
+                channelName: 'Volume Air Notif',
+              );
+              _saveNotification(title, message);
+              _lastVolumeNotifTime = fullDateTime;
+            }
           } catch (e) {
-            print('Parsing error: $e');
-            return;
-          }
-
-          if (volume < 16) {
-            final title = 'Peringatan Volume Air';
-            final message = 'Volume air kurang, segera isi ulang!';
-
-            NotificationService.showNotification(title, message, payload: 'go_to_monitoring');
-            _saveNotification(title, message);
-            _lastNotifiedTime = fullDateTime; // Simpan waktu notifikasi terakhir
+            print('Parsing error volume air: $e');
           }
         }
+      }
+
+      // === NOTIFIKASI PPM NUTRISI ===
+      try {
+        final mode = (await modeRef.get()).value?.toString().toLowerCase() ?? '';
+        final jenisTanaman = (await jenisTanamanNamaRef.get()).value?.toString().toLowerCase() ?? '';
+
+        if (mode == 'otomatis' && (jenisTanaman == 'bayam' || jenisTanaman == 'selada')) {
+          final tdsMin = double.tryParse((await tdsMinRef.get()).value.toString()) ?? 0;
+          final tdsMax = double.tryParse((await tdsMaxRef.get()).value.toString()) ?? 0;
+          final tdsNow = double.tryParse((await tdsRef.get()).value.toString()) ?? 0;
+
+          final now = DateTime.now();
+          final fullDateTime = DateFormat('yyyy-MM-dd HH:mm').format(now);
+
+          if (tdsNow < tdsMin) {
+            // Notifikasi jika nutrisi kurang
+            if (_shouldNotify(_lastTdsLowNotifTime, now, tdsNotifIntervalMinutes)) {
+              final title = 'Peringatan Ppm Nutrisi';
+              final message = 'Nutrisi untuk $jenisTanaman kurang, segera tambah nutrisi!';
+
+              NotificationService.showNotification(
+                title,
+                message,
+                payload: 'go_to_monitoring',
+                channelId: 'nutrisi_channel',
+                channelName: 'Nutrisi Notif',
+              );
+              _saveNotification(title, message);
+              _lastTdsLowNotifTime = fullDateTime;
+            }
+          } else if (tdsNow > tdsMax) {
+            // Notifikasi jika nutrisi terlalu tinggi
+            if (_shouldNotify(_lastTdsHighNotifTime, now, tdsNotifIntervalMinutes)) {
+              final title = 'Peringatan Ppm Nutrisi';
+              final message = 'Nutrisi untuk $jenisTanaman terlalu tinggi, segera kurangi nutrisi!';
+
+              NotificationService.showNotification(
+                title,
+                message,
+                payload: 'go_to_monitoring',
+                channelId: 'nutrisi_channel',
+                channelName: 'Nutrisi Notif',
+              );
+              _saveNotification(title, message);
+              _lastTdsHighNotifTime = fullDateTime;
+            }
+          }
+        }
+      } catch (e) {
+        print('Error saat pengecekan PPM nutrisi: $e');
       }
     });
   }
@@ -66,5 +131,12 @@ class FirebaseListenerService {
     });
 
     await prefs.setString('saved_notifications', jsonEncode(notifList));
+  }
+
+  bool _shouldNotify(String? lastTime, DateTime now, int intervalMinutes) {
+    if (lastTime == null) return true;
+
+    final lastDateTime = DateFormat('yyyy-MM-dd HH:mm').parse(lastTime);
+    return now.difference(lastDateTime).inMinutes >= intervalMinutes;
   }
 }
