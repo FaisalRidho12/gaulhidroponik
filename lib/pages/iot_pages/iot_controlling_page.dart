@@ -12,21 +12,20 @@ class IotControllingPage extends StatefulWidget {
 
 class _IotControllingPageState extends State<IotControllingPage> {
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref('hidroponik/control');
+  final DatabaseReference _plantsRef = FirebaseDatabase.instance.ref('hidroponik/jenisTanaman');
 
-  String _mode = ''; // default
+  String _mode = '';
   bool _relay1 = false;
   bool _relay2 = false;
-
-  // Untuk dropdown jenis tanaman (otomatis mode)
-  String? _selectedCategory;
-  final List<String> _categories = ['selada', 'bayam'];
+  String? _selectedPlant;
+  List<String> _availablePlants = [];
+  final TextEditingController _newPlantController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _listenToFirebase();
-    _loadSelectedCategory();
-    _setupCategoryListener();
+    _loadPlants();
   }
 
   void _listenToFirebase() {
@@ -42,20 +41,29 @@ class _IotControllingPageState extends State<IotControllingPage> {
     _dbRef.child('relay2').onValue.listen((event) {
       setState(() => _relay2 = event.snapshot.value == 'ON');
     });
+
+    _dbRef.child('selectedPlant').onValue.listen((event) {
+      if (mounted) {
+        setState(() {
+          _selectedPlant = event.snapshot.exists && event.snapshot.value != null
+              ? event.snapshot.value.toString()
+              : null;
+        });
+      }
+    });
   }
 
   Future<void> _updateMode(String newMode) async {
     await _dbRef.child('mode').set(newMode);
 
-    if (newMode == 'otomatis') {
-      // Reset nilai tds_min dan tds_max ke 0 (tetap ada key-nya)
-      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_min').set(0);
-      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_max').set(0);
-    } else if (newMode == 'manual') {
-      // Reset nama, tds_min, tds_max ke string kosong (tetap ada key-nya tapi value kosong)
-      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/nama').set('');
-      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_min').set(0);
-      await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_max').set(0);
+    // Kosongkan selectedPlant saat:
+    // - Beralih ke otomatis (seperti sebelumnya)
+    // - ATAU beralih ke manual (tambahan baru)
+    if (newMode == 'otomatis' || newMode == 'manual') {
+      await _dbRef.child('selectedPlant').set(''); // Kosongkan di Firebase
+      if (mounted) {
+        setState(() => _selectedPlant = null); // Kosongkan di state lokal
+      }
     }
   }
 
@@ -64,59 +72,186 @@ class _IotControllingPageState extends State<IotControllingPage> {
     await _dbRef.child(path).set(isOn ? 'ON' : 'OFF');
   }
 
-  // ---- Bagian untuk jenis tanaman (otomatis) ----
+  void _loadPlants() {
+    _plantsRef.onValue.listen((event) async {
+      if (mounted) {
+        final data = event.snapshot.value as Map<dynamic, dynamic>?;
+        final availablePlants = data?.keys.cast<String>().toList() ?? [];
 
-  bool _isValidCategory(String? category) {
-    return category != null && _categories.contains(category);
-  }
+        // Jika selectedPlant tidak ada di daftar baru, kosongkan
+        if (_selectedPlant != null && !availablePlants.contains(_selectedPlant)) {
+          await _dbRef.child('selectedPlant').set(''); // Update Firebase
+          setState(() => _selectedPlant = null); // Update state lokal
+        }
 
-  void _loadSelectedCategory() async {
-    DataSnapshot snapshot = await FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/nama').get();
-    if (snapshot.exists) {
-      final value = snapshot.value.toString();
-      if (_isValidCategory(value)) {
-        setState(() {
-          _selectedCategory = value;
-        });
-      }
-    }
-  }
-
-  void _setupCategoryListener() {
-    FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/nama').onValue.listen((event) {
-      if (event.snapshot.exists && mounted) {
-        final value = event.snapshot.value.toString();
-        setState(() {
-          if (_isValidCategory(value)) {
-            _selectedCategory = value;
-          } else {
-            _selectedCategory = null;  // Reset dropdown jika value tidak valid atau kosong
-          }
-        });
-      } else if (mounted) {
-        setState(() {
-          _selectedCategory = null; // Reset jika data tidak ada di Firebase
-        });
+        setState(() => _availablePlants = availablePlants);
       }
     });
   }
 
-  void _updateCategory(String? newValue) {
+  void _addNewPlant() {
+    final _formKey = GlobalKey<FormState>();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEAF1B1)),
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Tambah Tanaman Baru',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _newPlantController,
+                    style: const TextStyle(color: Colors.white),
+                    cursorColor: const Color(0xFFEAF1B1),
+                    decoration: InputDecoration(
+                      hintText: 'Nama tanaman',
+                      hintStyle: GoogleFonts.poppins(color: Colors.white70),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFEAF1B1)),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Masukkan nama tanaman';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.poppins(color: const Color(0xFFEAF1B1)),
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEAF1B1),
+                          foregroundColor: Colors.black,
+                        ),
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            final plantName = _newPlantController.text.trim().toLowerCase();
+                            await _plantsRef.child(plantName).set({
+                              'tds_min': 0,
+                              'tds_max': 0,
+                            });
+                            _newPlantController.clear();
+                            Navigator.pop(context); // Tutup dialog tambah tanaman
+
+                            // Tampilkan dialog konfirmasi
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                return Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFFEAF1B1)),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Sukses!',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Tanaman "$plantName" berhasil ditambahkan. Edit nilai PPM sekarang?',
+                                          style: GoogleFonts.poppins(color: Colors.white),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: Text(
+                                                'Nanti',
+                                                style: GoogleFonts.poppins(color: const Color(0xFFEAF1B1)),
+                                              ),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(0xFFEAF1B1),
+                                                foregroundColor: Colors.black,
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(context); // Tutup dialog konfirmasi
+                                                _showEditPpmDialog(plantName); // Buka dialog edit PPM
+                                              },
+                                              child: Text('Edit Sekarang', style: GoogleFonts.poppins()),
+                                            ),
+                                          ],
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        },
+                        child: Text('Simpan', style: GoogleFonts.poppins()),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _updateSelectedPlant(String? newValue) {
     if (newValue != null) {
-      FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/nama').set(newValue);
+      _dbRef.child('selectedPlant').set(newValue);
     }
   }
 
-  void _showEditPpmDialog() async {
-    final DatabaseReference tdsMinRef = FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_min');
-    final DatabaseReference tdsMaxRef = FirebaseDatabase.instance.ref('hidroponik/jenisTanaman/tds_max');
+  void _showEditPpmDialog(String plantName) async {
+    final ppmRef = _plantsRef.child('$plantName/');
+    DataSnapshot snapshot = await ppmRef.get();
+    Map<dynamic, dynamic>? values = snapshot.value as Map?;
 
-    // Ambil data awal
-    DataSnapshot minSnapshot = await tdsMinRef.get();
-    DataSnapshot maxSnapshot = await tdsMaxRef.get();
-
-    String tdsMin = minSnapshot.exists ? minSnapshot.value.toString() : '';
-    String tdsMax = maxSnapshot.exists ? maxSnapshot.value.toString() : '';
+    String tdsMin = values?['tds_min']?.toString() ?? '';
+    String tdsMax = values?['tds_max']?.toString() ?? '';
 
     final _formKey = GlobalKey<FormState>();
     TextEditingController minController = TextEditingController(text: tdsMin);
@@ -140,7 +275,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Edit Nilai PPM',
+                    'Edit Nilai PPM untuk $plantName',
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -157,7 +292,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                       labelText: 'PPM Minimum',
                       labelStyle: GoogleFonts.poppins(color: Colors.white),
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2.0),  // lebih tebal dan putih solid
+                        borderSide: BorderSide(color: Colors.white, width: 2.0),
                       ),
                       focusedBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFEAF1B1), width: 2.0),
@@ -165,7 +300,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Isi PPM minimum';
-                      if (double.tryParse(value) == null) return 'Masukkan angka yang valid';
+                      if (int.tryParse(value) == null) return 'Masukkan angka yang valid';
                       return null;
                     },
                   ),
@@ -179,7 +314,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                       labelText: 'PPM Maksimum',
                       labelStyle: GoogleFonts.poppins(color: Colors.white),
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2.0),  // lebih tebal dan putih solid
+                        borderSide: BorderSide(color: Colors.white, width: 2.0),
                       ),
                       focusedBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFEAF1B1), width: 2.0),
@@ -187,7 +322,10 @@ class _IotControllingPageState extends State<IotControllingPage> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Isi PPM maksimum';
-                      if (double.tryParse(value) == null) return 'Masukkan angka yang valid';
+                      if (int.tryParse(value) == null) return 'Masukkan angka yang valid';
+                      if (int.parse(value) <= int.parse(minController.text)) {
+                        return 'PPM max harus > PPM min';
+                      }
                       return null;
                     },
                   ),
@@ -209,12 +347,10 @@ class _IotControllingPageState extends State<IotControllingPage> {
                         ),
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            final int minVal = int.parse(minController.text);
-                            final int maxVal = int.parse(maxController.text);
-
-                            await tdsMinRef.set(minVal);
-                            await tdsMaxRef.set(maxVal);
-
+                            await ppmRef.update({
+                              'tds_min': int.parse(minController.text),
+                              'tds_max': int.parse(maxController.text),
+                            });
                             Navigator.of(context).pop();
                           }
                         },
@@ -224,6 +360,72 @@ class _IotControllingPageState extends State<IotControllingPage> {
                   ),
                 ],
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _deletePlant(String plantName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEAF1B1)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Hapus Tanaman',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Yakin ingin menghapus tanaman "$plantName"?',
+                  style: GoogleFonts.poppins(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Batal',
+                        style: GoogleFonts.poppins(color: const Color(0xFFEAF1B1)),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        await _plantsRef.child(plantName).remove();
+                        if (_selectedPlant == plantName) {
+                          await _dbRef.child('selectedPlant').set('');
+                          setState(() => _selectedPlant = null);
+                        }
+                        Navigator.pop(context);
+                      },
+                      child: Text('Hapus', style: GoogleFonts.poppins()),
+                    ),
+                  ],
+                )
+              ],
             ),
           ),
         );
@@ -261,9 +463,9 @@ class _IotControllingPageState extends State<IotControllingPage> {
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFFEBFADC), width: 2),
                 borderRadius: BorderRadius.circular(15),
-                color: Colors.white.withOpacity(0.1), // optional, supaya backgroundnya ada
+                color: Colors.white.withOpacity(0.1),
               ),
-              padding: const EdgeInsets.all(16), // kasih padding biar isinya ga nempel ke border
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -321,56 +523,102 @@ class _IotControllingPageState extends State<IotControllingPage> {
                     _buildRelaySwitchTile('Nutrisi B', _relay2, 2),
                   ] else
                     Container(
+                      padding: const EdgeInsets.all(12.0),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(15),
+                        color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFEAF1B1)),
                       ),
                       child: Row(
                         children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFFEAF1B1),
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: DropdownButtonFormField2<String>(
-                              isExpanded: true,
-                              value: _isValidCategory(_selectedCategory) ? _selectedCategory : null,
-                              decoration: const InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                                border: InputBorder.none,
+                            child: Text(
+                              "Pilih jenis tanaman atau tambah, edit, dan hapus tanaman!",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.white,
                               ),
-                              hint: Text(
-                                'Pilih jenis tanaman',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  if (!isManual)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField2<String>(
+                            isExpanded: true,
+                            value: _availablePlants.contains(_selectedPlant) ? _selectedPlant : null,
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                              border: InputBorder.none,
+                            ),
+                            hint: Text(
+                              _availablePlants.isEmpty
+                                  ? 'Tanaman tidak tersesia'
+                                  : 'Pilih jenis tanaman',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                            items: _availablePlants
+                                .toSet() // Hindari duplikat
+                                .map((item) => DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(
+                                item[0].toUpperCase() + item.substring(1),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   color: Colors.white,
                                 ),
                               ),
-                              items: _categories
-                                  .map((item) => DropdownMenuItem<String>(
-                                value: item,
-                                child: Text(
-                                  item[0].toUpperCase() + item.substring(1),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ))
-                                  .toList(),
-                              onChanged: _updateCategory,
-                              dropdownStyleData: DropdownStyleData(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(15),
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
+                            ))
+                                .toList(),
+                            onChanged: _availablePlants.isEmpty
+                                ? null // Nonaktifkan jika tidak ada tanaman
+                                : (newValue) {
+                              if (newValue != null) {
+                                _updateSelectedPlant(newValue);
+                              }
+                            },
+                            dropdownStyleData: DropdownStyleData(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(15),
+                                color: Colors.white.withOpacity(0.3),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add, color: Color(0xFFEAF1B1)),
+                          onPressed: _addNewPlant,
+                        ),
+                        if (_selectedPlant != null) ...[
                           IconButton(
                             icon: const Icon(Icons.edit, color: Color(0xFFEAF1B1)),
-                            onPressed: () => _showEditPpmDialog(),
+                            onPressed: () => _showEditPpmDialog(_selectedPlant!),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Color(0xFFEAF1B1)),
+                            onPressed: () => _deletePlant(_selectedPlant!),
                           ),
                         ],
-                      ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             )
