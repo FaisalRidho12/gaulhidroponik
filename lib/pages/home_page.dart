@@ -19,7 +19,7 @@ class _HomePageState extends State<HomePage> {
   String? displayName;
   String selectedText = 'Memuat data...';
 
-  final DatabaseReference _plantRef = FirebaseDatabase.instance.ref("/hidroponik/jenisTanaman/nama");
+  final DatabaseReference _plantRef = FirebaseDatabase.instance.ref("/hidroponik/control/selectedPlant");
   final DatabaseReference _modeRef = FirebaseDatabase.instance.ref("/hidroponik/control/mode");
   final DatabaseReference _volumeAirRef = FirebaseDatabase.instance.ref("/hidroponik/monitoring/volume_air");
   final DatabaseReference _tdsRef = FirebaseDatabase.instance.ref("/hidroponik/monitoring/tds");
@@ -150,17 +150,22 @@ class _HomePageState extends State<HomePage> {
 
 
   void _updateSelectedText() {
-    if (_mode == null) {
-      selectedText = 'Memuat data mode...';
-    } else if (_mode == 'otomatis') {
-      selectedText =
-      'Mode saat ini $_mode, sayuran yang anda pilih adalah ${_plant ?? 'memuat...'} dengan PPM Nutrisi Min (${_tdsMin?.toInt() ?? 'memuat...'}) dan PPM Nutrisi Max (${_tdsMax?.toInt() ?? 'memuat...'})';
-    } else if (_mode == 'manual') {
-      selectedText = 'Mode saat ini $_mode';
+  if (_mode == null) {
+    selectedText = 'Memuat data mode...';
+  } else if (_mode == 'otomatis') {
+    if (_plant != null) {
+      selectedText = 'Mode saat ini $_mode, sayuran yang anda pilih adalah $_plant '
+          'dengan PPM Nutrisi Min (${_tdsMin?.toInt() ?? 'memuat...'}) '
+          'dan PPM Nutrisi Max (${_tdsMax?.toInt() ?? 'memuat...'})';
     } else {
-      selectedText = 'Mode saat ini tidak diketahui';
+      selectedText = 'Mode saat ini $_mode, belum memilih tanaman';
     }
+  } else if (_mode == 'manual') {
+    selectedText = 'Mode saat ini $_mode';
+  } else {
+    selectedText = 'Mode saat ini tidak diketahui';
   }
+}
 
   void _showPlantInfoDialog(String plantName) {
     String plantLower = plantName.toLowerCase();
@@ -343,12 +348,15 @@ class _HomePageState extends State<HomePage> {
                           )
                               : (_plant != null
                               ? Image.asset(
-                            'assets/icons/${_plant!.toLowerCase()}.png',
-                            height: 200,
-                            width: 200,
-                            fit: BoxFit.contain,
-                          )
-                              : const Center(child: CircularProgressIndicator())),
+                          'assets/icons/${_plant!.toLowerCase()}.png',
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.help_outline, size: 50, color: Colors.white);
+        },
+      )
+    : const Center(child: CircularProgressIndicator()))
                         ),
                       ),
                     ],
