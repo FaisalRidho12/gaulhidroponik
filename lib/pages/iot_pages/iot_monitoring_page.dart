@@ -18,6 +18,8 @@ class _IotMonitoringPageState extends State<IotMonitoringPage> {
   String volumeAir = "Loading...";
   String relay1Status = "Loading...";
   String relay2Status = "Loading...";
+  String volumeNutrisiA = "Loading...";
+  String volumeNutrisiB = "Loading...";
 
   @override
   void initState() {
@@ -31,6 +33,8 @@ class _IotMonitoringPageState extends State<IotMonitoringPage> {
     setState(() {
       tds = prefs.getString('last_tds') ?? "Klik untuk ambil data";
       volumeAir = prefs.getString('last_volume_air') ?? "Klik untuk ambil data";
+      volumeNutrisiA = prefs.getString('last_volume_nutrisi_a') ?? "Klik untuk ambil data";
+      volumeNutrisiB = prefs.getString('last_volume_nutrisi_b') ?? "Klik untuk ambil data";
     });
   }
 
@@ -57,6 +61,30 @@ class _IotMonitoringPageState extends State<IotMonitoringPage> {
 
       final prefs = await SharedPreferences.getInstance();
       prefs.setString('last_volume_air', value);
+    }
+  }
+
+  Future<void> fetchVolumeNutrisiA() async {
+    final snapshot = await _database.child('/hidroponik/monitoring/volume_nutrisi_a').get();
+    if (snapshot.exists) {
+      String value = snapshot.value.toString();
+      setState(() {
+        volumeNutrisiA = value;
+      });
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('last_volume_nutrisi_a', value);
+    }
+  }
+
+  Future<void> fetchVolumeNutrisiB() async {
+    final snapshot = await _database.child('/hidroponik/monitoring/volume_nutrisi_b').get();
+    if (snapshot.exists) {
+      String value = snapshot.value.toString();
+      setState(() {
+        volumeNutrisiB = value;
+      });
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('last_volume_nutrisi_b', value);
     }
   }
 
@@ -115,7 +143,7 @@ class _IotMonitoringPageState extends State<IotMonitoringPage> {
                             icon: Icons.science,
                             label: 'TDS',
                             value:
-                            '${double.tryParse(tds)?.toStringAsFixed(1) ?? "--"} ppm',
+                            '${double.tryParse(tds)?.toInt().toString() ?? "--"} ppm',
                             percent: ((double.tryParse(tds) ?? 0.0) / 1600.0)
                                 .clamp(0.0, 1.0),
                           ),
@@ -133,6 +161,39 @@ class _IotMonitoringPageState extends State<IotMonitoringPage> {
                             percent:
                             ((double.tryParse(volumeAir) ?? 0.0) / 18.0)
                                 .clamp(0.0, 1.0),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: fetchVolumeNutrisiA,
+                          child: _buildCard(
+                            icon: Icons.water_drop_outlined,
+                            label: 'Vol. Nutrisi A',
+                            value:
+                            '${double.tryParse(volumeNutrisiA)?.toStringAsFixed(1) ?? "--"} L',
+                            percent:
+                            ((double.tryParse(volumeNutrisiA) ?? 0.0) / 2.0).clamp(0.0, 1.0), // Asumsikan max 2L
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: fetchVolumeNutrisiB,
+                          child: _buildCard(
+                            icon: Icons.opacity_outlined,
+                            label: 'Vol. Nutrisi B',
+                            value:
+                            '${double.tryParse(volumeNutrisiB)?.toStringAsFixed(1) ?? "--"} L',
+                            percent:
+                            ((double.tryParse(volumeNutrisiB) ?? 0.0) / 2.0).clamp(0.0, 1.0), // Asumsikan max 2L
                           ),
                         ),
                       ),
