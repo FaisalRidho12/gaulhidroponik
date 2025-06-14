@@ -20,7 +20,7 @@ class FirebaseListenerService {
     _volumeAirRef = FirebaseDatabase.instance.ref('/hidroponik/monitoring/volume_air');
 
     final DatabaseReference modeRef = FirebaseDatabase.instance.ref('/hidroponik/control/mode');
-    final DatabaseReference jenisTanamanNamaRef = FirebaseDatabase.instance.ref('/hidroponik/jenisTanaman/nama');
+    final DatabaseReference selectedPlantRef = FirebaseDatabase.instance.ref('/hidroponik/control/selectedPlant');
     final DatabaseReference tdsMinRef = FirebaseDatabase.instance.ref('/hidroponik/jenisTanaman/tds_min');
     final DatabaseReference tdsMaxRef = FirebaseDatabase.instance.ref('/hidroponik/jenisTanaman/tds_max');
     final DatabaseReference tdsRef = FirebaseDatabase.instance.ref('/hidroponik/monitoring/tds');
@@ -64,22 +64,30 @@ class FirebaseListenerService {
 
       // === NOTIFIKASI PPM NUTRISI ===
       try {
-        final mode = (await modeRef.get()).value?.toString().toLowerCase() ?? '';
-        final jenisTanaman = (await jenisTanamanNamaRef.get()).value?.toString().toLowerCase() ?? '';
+        final modeSnapshot = await modeRef.get();
+        final selectedPlantSnapshot = await selectedPlantRef.get();
 
-        if (mode == 'otomatis' && (jenisTanaman == 'bayam' || jenisTanaman == 'selada')) {
-          final tdsMin = double.tryParse((await tdsMinRef.get()).value.toString()) ?? 0;
-          final tdsMax = double.tryParse((await tdsMaxRef.get()).value.toString()) ?? 0;
-          final tdsNow = double.tryParse((await tdsRef.get()).value.toString()) ?? 0;
+        final mode = modeSnapshot.value?.toString().toLowerCase() ?? '';
+        final selectedPlant = selectedPlantSnapshot.value?.toString().toLowerCase() ?? '';
 
-          final now = DateTime.now();
-          final fullDateTime = DateFormat('yyyy-MM-dd HH:mm').format(now);
+        if (mode == 'otomatis' && selectedPlant.isNotEmpty) {
+          final tdsMinPath = '/hidroponik/jenisTanaman/$selectedPlant/tds_min';
+          final tdsMaxPath = '/hidroponik/jenisTanaman/$selectedPlant/tds_max';
+
+          final tdsMinSnapshot = await FirebaseDatabase.instance.ref(tdsMinPath).get();
+          final tdsMaxSnapshot = await FirebaseDatabase.instance.ref(tdsMaxPath).get();
+          final tdsNowSnapshot = await tdsRef.get();
+
+          final tdsMin = double.tryParse(tdsMinSnapshot.value.toString()) ?? 0;
+          final tdsMax = double.tryParse(tdsMaxSnapshot.value.toString()) ?? 0;
+          final tdsNow = double.tryParse(tdsNowSnapshot.value.toString()) ?? 0;
+
+          final fullDateTime = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
 
           if (tdsNow < tdsMin) {
-            // Notifikasi jika nutrisi kurang
             if (_shouldNotify(_lastTdsLowNotifTime, now, tdsNotifIntervalMinutes)) {
               final title = 'Peringatan Ppm Nutrisi';
-              final message = 'Nutrisi untuk $jenisTanaman kurang, segera tambah nutrisi!';
+              final message = 'Nutrisi untuk $selectedPlant kurang, segera tambah nutrisi!';
 
               NotificationService.showNotification(
                 title,
@@ -92,10 +100,9 @@ class FirebaseListenerService {
               _lastTdsLowNotifTime = fullDateTime;
             }
           } else if (tdsNow > tdsMax) {
-            // Notifikasi jika nutrisi terlalu tinggi
             if (_shouldNotify(_lastTdsHighNotifTime, now, tdsNotifIntervalMinutes)) {
               final title = 'Peringatan Ppm Nutrisi';
-              final message = 'Nutrisi untuk $jenisTanaman terlalu tinggi, segera kurangi nutrisi!';
+              final message = 'Nutrisi untuk $selectedPlant terlalu tinggi, segera kurangi nutrisi!';
 
               NotificationService.showNotification(
                 title,
