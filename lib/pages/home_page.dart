@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
     if (user != null) {
       displayName = user.displayName ?? user.email;
     }
-
+    
     // Listen mode
     _modeRef.onValue.listen((event) {
       final modeValue = event.snapshot.value;
@@ -74,6 +74,14 @@ class _HomePageState extends State<HomePage> {
       });
     });
 
+    // Listener untuk data tanaman
+      FirebaseDatabase.instance.ref('hidroponik/jenisTanaman')
+        .onValue.listen((event) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+    
     // Listen volume_air
     _volumeAirRef.onValue.listen((event) {
       final value = event.snapshot.value;
@@ -167,78 +175,87 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-  void _showPlantInfoDialog(String plantName) {
-    String plantLower = plantName.toLowerCase();
-    String description = '';
-    String phRange = '';
-    String ppmRange = '';
+  void _showPlantInfoDialog(String plantName) async {
+  // Ambil data tanaman dari Firebase
+  final plantData = await FirebaseDatabase.instance
+      .ref('hidroponik/jenisTanaman/${plantName.toLowerCase()}')
+      .once();
 
-    if (plantLower.contains('selada')) {
-      description = 'Selada adalah sayuran daun yang mudah tumbuh, cocok untuk hidroponik.';
-      phRange = 'pH ideal: 6.0 - 7.0';
-      ppmRange = 'PPM nutrisi: 560 - 840';
-    } else if (plantLower.contains('bayam')) {
-      description = 'Bayam kaya akan zat besi dan nutrisi penting, cocok hidroponik.';
-      phRange = 'pH ideal: 6.5 - 7.5';
-      ppmRange = 'PPM nutrisi: 1000 - 1500';
-    } else {
-      description = 'Informasi sayuran belum tersedia.';
-      phRange = 'pH ideal: N/A';
-      ppmRange = 'PPM nutrisi: N/A';
-    }
+  final data = plantData.snapshot.value as Map<dynamic, dynamic>?;
+  
+  String description = '';
+  String phRange = '';
+  String ppmRange = '';
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFF728C5A).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFEAF1B1)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Informasi Tanaman',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(description, style: GoogleFonts.poppins(color: Colors.white)),
-                if (phRange.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(phRange, style: GoogleFonts.poppins(color: Colors.white)),
-                ],
-                if (ppmRange.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(ppmRange, style: GoogleFonts.poppins(color: Colors.white)),
-                ],
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text(
-                      'Tutup',
-                      style: TextStyle(color: Color(0xFFEAF1B1)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  // Set deskripsi berdasarkan jenis tanaman
+  if (plantName.toLowerCase().contains('selada')) {
+    description = 'Selada adalah sayuran daun yang mudah tumbuh, cocok untuk hidroponik.';
+    phRange = 'pH ideal: 6.0 - 7.0';
+  } else if (plantName.toLowerCase().contains('bayam')) {
+    description = 'Bayam kaya akan zat besi dan nutrisi penting, cocok hidroponik.';
+    phRange = 'pH ideal: 6.5 - 7.5';
+  } else {
+    description = 'Informasi sayuran belum tersedia.';
+    phRange = 'pH ideal: N/A';
   }
+
+  // Ambil nilai PPM dari Firebase (jika ada)
+  if (data != null) {
+    final tdsMin = data['tds_min']?.toString() ?? 'N/A';
+    final tdsMax = data['tds_max']?.toString() ?? 'N/A';
+    ppmRange = 'PPM nutrisi: $tdsMin - $tdsMax';
+  } else {
+    ppmRange = 'PPM nutrisi: Belum diatur';
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF728C5A).withOpacity(0.8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFEAF1B1)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Informasi $plantName',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(description, style: GoogleFonts.poppins(color: Colors.white)),
+              const SizedBox(height: 8),
+              Text(phRange, style: GoogleFonts.poppins(color: Colors.white)),
+              const SizedBox(height: 4),
+              Text(ppmRange, style: GoogleFonts.poppins(color: Colors.white)),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Tutup',
+                    style: TextStyle(color: Color(0xFFEAF1B1)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {

@@ -161,6 +161,7 @@ class _IotControllingPageState extends State<IotControllingPage> {
                               'tds_min': 0,
                               'tds_max': 0,
                             });
+                            
                             _newPlantController.clear();
                             Navigator.pop(context); // Tutup dialog tambah tanaman
 
