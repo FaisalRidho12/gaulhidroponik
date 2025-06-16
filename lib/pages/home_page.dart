@@ -15,7 +15,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<String> plants = ['Bayam', 'Selada'];
+  final List<String> plants = ['Bayam', 'Selada', 'Sawi', 'Kangkung', 'Pakcoy', 'Kale'];
   String? displayName;
   String selectedText = 'Memuat data...';
 
@@ -41,71 +41,62 @@ class _HomePageState extends State<HomePage> {
 
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
 
+  _startAutoSlideIfManual();
+
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    displayName = user.displayName ?? user.email;
+  }
+  
+  // Listen mode
+  _modeRef.onValue.listen((event) {
+    final modeValue = event.snapshot.value;
+    setState(() {
+      _mode = (modeValue is String && modeValue.isNotEmpty) ? modeValue.toLowerCase() : null;
+      _updateSelectedText(); // Panggil update text saat mode berubah
+    });
     _startAutoSlideIfManual();
+  });
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      displayName = user.displayName ?? user.email;
-    }
-    
-    // Listen mode
-    _modeRef.onValue.listen((event) {
-      final modeValue = event.snapshot.value;
-      setState(() {
-        _mode = (modeValue is String && modeValue.isNotEmpty) ? modeValue.toLowerCase() : null;
-        _updateSelectedText();
-      });
-      _startAutoSlideIfManual();
+  // Listen jenis tanaman
+  _plantRef.onValue.listen((event) {
+    final plantValue = event.snapshot.value;
+    setState(() {
+      if (plantValue is String && plantValue.isNotEmpty) {
+        _plant = plantValue[0].toUpperCase() + plantValue.substring(1);
+      } else {
+        _plant = 'Tidak diketahui';
+      }
+      _updateSelectedText(); // Panggil update text saat tanaman berubah
     });
+  });
 
-    // Listen jenis tanaman
-    _plantRef.onValue.listen((event) {
-      final plantValue = event.snapshot.value;
-      setState(() {
-        if (plantValue is String && plantValue.isNotEmpty) {
-          _plant = plantValue[0].toUpperCase() + plantValue.substring(1);
-        } else {
-          _plant = 'Tidak diketahui';
-        }
-        _updateSelectedText();
-      });
+  // Listen volume_air
+  _volumeAirRef.onValue.listen((event) {
+    final value = event.snapshot.value;
+    setState(() {
+      if (value is num) {
+        _volumeAir = value.toDouble();
+      } else {
+        _volumeAir = null;
+      }
     });
+  });
 
-    // Listener untuk data tanaman
-      FirebaseDatabase.instance.ref('hidroponik/jenisTanaman')
-        .onValue.listen((event) {
-          if (mounted) {
-            setState(() {});
-          }
-        });
-    
-    // Listen volume_air
-    _volumeAirRef.onValue.listen((event) {
-      final value = event.snapshot.value;
-      setState(() {
-        if (value is num) {
-          _volumeAir = value.toDouble();
-        } else {
-          _volumeAir = null;
-        }
-      });
+  // Listen TDS value
+  _tdsRef.onValue.listen((event) {
+    final value = event.snapshot.value;
+    setState(() {
+      if (value is num) {
+        _tds = value.toDouble();
+      } else {
+        _tds = null;
+      }
     });
-
-    // Listen TDS value
-    _tdsRef.onValue.listen((event) {
-      final value = event.snapshot.value;
-      setState(() {
-        if (value is num) {
-          _tds = value.toDouble();
-        } else {
-          _tds = null;
-        }
-      });
-    });
-
+  });
 
     // Listen tds_min
     _tdsMinRef.onValue.listen((event) {
@@ -157,14 +148,40 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  void _updateSelectedText() {
+  void _updateSelectedText() async {
   if (_mode == null) {
     selectedText = 'Memuat data mode...';
   } else if (_mode == 'otomatis') {
     if (_plant != null) {
-      selectedText = 'Mode saat ini $_mode, sayuran yang anda pilih adalah $_plant '
-          'dengan PPM Nutrisi Min (${_tdsMin?.toInt() ?? 'memuat...'}) '
-          'dan PPM Nutrisi Max (${_tdsMax?.toInt() ?? 'memuat...'})';
+      try {
+        // Ambil data PPM untuk tanaman yang dipilih
+        final plantName = _plant!.toLowerCase();
+        final snapshot = await FirebaseDatabase.instance
+            .ref('hidroponik/jenisTanaman/$plantName')
+            .once();
+
+        if (snapshot.snapshot.value != null) {
+          final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
+          final tdsMin = data['tds_min']?.toString() ?? 'belum diatur';
+          final tdsMax = data['tds_max']?.toString() ?? 'belum diatur';
+
+          setState(() {
+            selectedText = 'Mode saat ini $_mode, sayuran yang anda pilih adalah $_plant '
+                'dengan PPM Nutrisi Min ($tdsMin) '
+                'dan PPM Nutrisi Max ($tdsMax)';
+          });
+        } else {
+          setState(() {
+            selectedText = 'Mode saat ini $_mode, sayuran yang anda pilih adalah $_plant '
+                '(nilai PPM belum diatur)';
+          });
+        }
+      } catch (e) {
+        setState(() {
+          selectedText = 'Mode saat ini $_mode, sayuran yang anda pilih adalah $_plant '
+              '(gagal memuat data PPM)';
+        });
+      }
     } else {
       selectedText = 'Mode saat ini $_mode, belum memilih tanaman';
     }
@@ -189,15 +206,27 @@ class _HomePageState extends State<HomePage> {
 
   // Set deskripsi berdasarkan jenis tanaman
   if (plantName.toLowerCase().contains('selada')) {
-    description = 'Selada adalah sayuran daun yang mudah tumbuh, cocok untuk hidroponik.';
-    phRange = 'pH ideal: 6.0 - 7.0';
-  } else if (plantName.toLowerCase().contains('bayam')) {
-    description = 'Bayam kaya akan zat besi dan nutrisi penting, cocok hidroponik.';
-    phRange = 'pH ideal: 6.5 - 7.5';
-  } else {
-    description = 'Informasi sayuran belum tersedia.';
-    phRange = 'pH ideal: N/A';
-  }
+  description = 'Selada adalah sayuran daun yang mudah tumbuh, cocok untuk hidroponik.';
+  phRange = 'pH ideal: 6.0 - 7.0';
+} else if (plantName.toLowerCase().contains('bayam')) {
+  description = 'Bayam kaya akan zat besi dan nutrisi penting, cocok untuk hidroponik.';
+  phRange = 'pH ideal: 6.5 - 7.5';
+} else if (plantName.toLowerCase().contains('sawi')) {
+  description = 'Sawi adalah sayuran daun yang cepat tumbuh dan tahan terhadap berbagai kondisi.';
+  phRange = 'pH ideal: 6.0 - 7.0';
+} else if (plantName.toLowerCase().contains('kangkung')) {
+  description = 'Kangkung tumbuh sangat cepat dalam sistem hidroponik dan kaya akan vitamin A dan C.';
+  phRange = 'pH ideal: 5.5 - 6.5';
+} else if (plantName.toLowerCase().contains('pakcoy')) {
+  description = 'Pakcoy atau bok choy adalah sayuran asia yang kaya kalsium dan vitamin K.';
+  phRange = 'pH ideal: 6.0 - 7.0';
+} else if (plantName.toLowerCase().contains('kale')) {
+  description = 'Kale adalah superfood yang sangat bergizi dan tumbuh baik dalam sistem hidroponik.';
+  phRange = 'pH ideal: 5.5 - 6.5';
+} else {
+  description = 'Informasi sayuran belum tersedia.';
+  phRange = 'pH ideal: N/A';
+}
 
   // Ambil nilai PPM dari Firebase (jika ada)
   if (data != null) {
@@ -207,6 +236,19 @@ class _HomePageState extends State<HomePage> {
   } else {
     ppmRange = 'PPM nutrisi: Belum diatur';
   }
+
+if (data != null) {
+  final tdsMin = int.tryParse(data['tds_min']?.toString() ?? '0') ?? 0;
+  final tdsMax = int.tryParse(data['tds_max']?.toString() ?? '0') ?? 0;
+  
+  if (tdsMin <= 0 || tdsMax <= 0 || tdsMax <= tdsMin) {
+    ppmRange = '⚠ PPM belum diatur dengan benar';
+  } else {
+    ppmRange = 'PPM nutrisi: $tdsMin - $tdsMax';
+  }
+} else {
+  ppmRange = 'PPM nutrisi: Belum diatur';
+}
 
   showDialog(
     context: context,
